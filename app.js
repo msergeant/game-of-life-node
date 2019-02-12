@@ -1,34 +1,41 @@
-const http = require('http');
-const url = require('url');
-const utils = require('./utilities');
-const worldHandler = require('./worldHandler');
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
 
-const hostname = '127.0.0.1';
-const port = 3000;
+var indexRouter = require('./routes/index');
+var usersRouter = require('./routes/users');
 
-const server = http.createServer((req, res) => {
-  const parts = url.parse(req.url);
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "X-Requested-With, X-Prototype-Version, Token, Content-Type",
-    "Access-Control-Max-Age": "1728000",
-  };
+var app = express();
 
-  Object.keys(corsHeaders).forEach((key) => {
-    res.setHeader(key, corsHeaders[key]);
-  });
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
 
-  if (req.method == 'OPTIONS') {
-    utils.sendResponse(res, '', 200);
-  }
-  else if (parts.pathname === '/worlds/next') {
-    worldHandler(req, res);
-  } else {
-    utils.sendResponse(res, "Not found", 404);
-  }
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
 });
 
-server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
 });
+
+module.exports = app;
